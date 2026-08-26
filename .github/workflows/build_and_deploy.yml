@@ -10,7 +10,7 @@ on:
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}/app
-  GITOPS_REPO: mkanus/argocd-deploy
+  GITOPS_REPO: ivob-sevtech/argocd-deploy
 
 jobs:
   build-and-deploy:
