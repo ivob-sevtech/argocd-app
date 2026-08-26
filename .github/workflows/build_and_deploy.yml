@@ -44,17 +44,28 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Update GitOps deployment repo
+        env:
+          GITOPS_PAT: ${{ secrets.GITOPS_PAT }}
         run: |
-          git clone https://${{ secrets.GITOPS_PAT }}@github.com/${{ env.GITOPS_REPO }} gitops
-          cd gitops
-          
-          # Güncel image tag'ini yaz
-          sed -i "s|image: ghcr.io/.*/.*:.*|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|g" deployment.yaml
+          if [ -z "$GITOPS_PAT" ]; then
+            echo "::error::GITOPS_PAT secret is empty. Add it under Settings > Secrets and variables > Actions > Secrets."
+            exit 1
+          fi
 
-          # Git commit ve push işlemleri
+          git clone "https://x-access-token:${GITOPS_PAT}@github.com/${GITOPS_REPO}.git" gitops
+          cd gitops
+
+          # Write the current image tag
+          sed -i "s|image: ghcr.io/.*/.*:.*|image: ${IMAGE_NAME}:${GITHUB_SHA}|g" deployment.yaml
+
+          if git diff --quiet -- deployment.yaml; then
+            echo "deployment.yaml already up to date; nothing to push."
+            exit 0
+          fi
+
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
           git add deployment.yaml
-          git commit -m "Update image to ${{ github.sha }}"
+          git commit -m "Update image to ${GITHUB_SHA}"
           git push origin main
